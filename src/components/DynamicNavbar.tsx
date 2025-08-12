@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import useDeviceInfo from '@/hooks/useDeviceInfo';
+import { profile } from '@/data/profile';
+import { useTheme } from '@/components/utils/ThemeProvider';
 
 interface NavItem {
   label: string;
@@ -19,39 +22,17 @@ export default function DynamicNavbar() {
   const [isVisible, setIsVisible] = useState(false);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const { isMobile } = useDeviceInfo();
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [scrollProgress, setScrollProgress] = useState(0);
   const [activeSection, setActiveSection] = useState('inicio');
-  const [isScrolled, setIsScrolled] = useState(false);
+  // const [isScrolled, setIsScrolled] = useState(false);
   const navbarRef = useRef<HTMLDivElement>(null);
+  const { resolvedTheme, toggleTheme } = useTheme();
 
-  // Detectar si es móvil
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    
-    checkMobile();
-    const debouncedResize = debounce(checkMobile, 150);
-    window.addEventListener('resize', debouncedResize);
-    return () => window.removeEventListener('resize', debouncedResize);
-  }, []);
-
-  // Función debounce para optimizar el resize
-  const debounce = (func: Function, wait: number) => {
-    let timeout: NodeJS.Timeout;
-    return function executedFunction(...args: any[]) {
-      const later = () => {
-        clearTimeout(timeout);
-        func(...args);
-      };
-      clearTimeout(timeout);
-      timeout = setTimeout(later, wait);
-    };
-  };
+  // Detección de dispositivo centralizada en useDeviceInfo
 
   // Sincronización con la animación de loading
   useEffect(() => {
@@ -91,7 +72,6 @@ export default function DynamicNavbar() {
       const progress = (scrollTop / docHeight) * 100;
       
       setScrollProgress(Math.min(progress, 100));
-      setIsScrolled(scrollTop > 50);
       
       // Detectar sección activa
       const sections = navItems.map(item => item.href.replace('#', ''));
@@ -152,38 +132,7 @@ export default function DynamicNavbar() {
     };
   }, []);
 
-  // Función para manejar el scroll suave
-  const handleSmoothScroll = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-    e.preventDefault();
-    
-    console.log('🔥 CLICK DETECTADO! Navegando a:', href);
-    console.log('📱 Event object:', e);
-    console.log('🎯 Target element:', e.target);
-    
-    const targetId = href.replace('#', '');
-    const targetElement = document.getElementById(targetId);
-    
-    console.log('🎯 Elemento encontrado:', targetElement);
-    console.log('📍 ID buscado:', targetId);
-    
-    if (targetElement) {
-      const offsetTop = targetElement.offsetTop;
-      const navbarHeight = 100; // Altura aproximada del navbar
-      
-      console.log('📏 Offset top:', offsetTop);
-      console.log('🧭 Scrolling to:', offsetTop - navbarHeight);
-      
-      window.scrollTo({
-        top: offsetTop - navbarHeight,
-        behavior: 'smooth'
-      });
-    } else {
-      console.error('❌ No se encontró el elemento con ID:', targetId);
-      // Listar todos los elementos con ID para debug
-      const allElementsWithId = document.querySelectorAll('[id]');
-      console.log('📋 Elementos con ID disponibles:', Array.from(allElementsWithId).map(el => el.id));
-     }
-   };
+  // Scroll suave ahora centralizado en SmoothScrollHandler
 
   return (
     <>
@@ -193,9 +142,9 @@ export default function DynamicNavbar() {
           ref={navbarRef}
           className={`
             relative overflow-hidden
-            ${isLoading 
+              ${isLoading 
                 ? 'w-20 sm:w-24 h-16 sm:h-20 glass-effect depth-effect'
-                : 'w-[90vw] max-w-[1200px] h-16 sm:h-20 glass-effect-expanded depth-effect-expanded'
+                : 'w-[98vw] max-w-[1680px] h-16 sm:h-20 glass-effect-expanded depth-effect-expanded'
               }
             rounded-full
             transition-all duration-700 ease-[cubic-bezier(0.175,0.885,0.32,1.275)]
@@ -203,6 +152,7 @@ export default function DynamicNavbar() {
             hover:scale-[1.01]
             active:scale-[0.99]
           `}
+          id="dynamic-navbar"
         >
           {/* Estado de Loading Mejorado */}
           {isLoading && (
@@ -213,7 +163,7 @@ export default function DynamicNavbar() {
                     cx="12"
                     cy="12"
                     r="9"
-                    stroke="rgba(255, 255, 255, 0.15)"
+                    stroke="var(--border)"
                     strokeWidth="2"
                     fill="none"
                   />
@@ -221,7 +171,7 @@ export default function DynamicNavbar() {
                     cx="12"
                     cy="12"
                     r="9"
-                    stroke="rgba(255, 255, 255, 0.9)"
+                    stroke="var(--fg)"
                     strokeWidth="2"
                     fill="none"
                     strokeDasharray={`${2 * Math.PI * 9}`}
@@ -230,11 +180,11 @@ export default function DynamicNavbar() {
                   />
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-2 h-2 bg-white/90 rounded-full animate-pulse-custom"></div>
+                  <div className="w-2 h-2 bg-fg-soft rounded-full animate-pulse-custom"></div>
                 </div>
               </div>
               <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2">
-                <div className="text-white/60 text-xs font-mono tracking-wider">
+                <div className="text-fg-muted text-xs font-mono tracking-wider">
                   {Math.round(loadingProgress)}%
                 </div>
               </div>
@@ -243,39 +193,35 @@ export default function DynamicNavbar() {
 
           {/* Contenido Principal - Siempre Expandido */}
           {!isLoading && isVisible && (
-            <div className="absolute inset-0 flex items-center justify-between px-4 sm:px-8 lg:px-16 animate-slide-in">
+            <div className="absolute inset-0 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center px-2 sm:px-4 lg:px-6 gap-2 sm:gap-3 xl:gap-4 animate-slide-in min-w-0">
               {/* Logo y Marca */}
-              <div className="flex items-center space-x-3 sm:space-x-6">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-white/20 to-white/10 rounded-xl flex items-center justify-center backdrop-blur-sm border border-white/20">
-                    <span className="text-white font-bold text-sm sm:text-lg">GR</span>
+              <div className="flex items-center space-x-3 sm:space-x-5 pr-2 md:pr-0">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center backdrop-blur-sm border app-border bg-overlay-1">
+                    <span className="text-fg font-bold text-sm sm:text-lg">{profile.shortName.split(' ').map(s => s[0]).join('').slice(0,2)}</span>
                   </div>
-                  <div className="hidden lg:block min-w-[200px]">
-                    <div className="text-white/90 font-semibold text-base tracking-wide">Gustavo Rodríguez</div>
-                    <div className="text-white/60 text-sm tracking-wider">Fullstack Developer</div>
+                  <div className="hidden lg:block min-w-[180px]">
+                    <div className="text-fg-soft font-semibold text-base tracking-wide">{profile.shortName}</div>
+                    <div className="text-fg-muted text-sm tracking-wider">{profile.role}</div>
                   </div>
                 </div>
               
               {/* Navegación Principal */}
-              <nav className="flex items-center space-x-8">
+              <nav role="navigation" aria-label="Navegación principal" className="flex flex-nowrap items-center justify-start md:justify-center gap-x-2 sm:gap-x-3 xl:gap-x-4 min-w-0 w-full overflow-x-auto hide-scrollbar pr-2">
                 {navItems.map((item, index) => {
                   const isActive = activeSection === item.href.replace('#', '');
                   return (
-                    <a
+                        <a
                       key={item.label}
                       href={item.href}
-                      onClick={(e) => handleSmoothScroll(e, item.href)}
+                          aria-current={isActive ? 'page' : undefined}
                       className={`
-                        group relative
+                        group relative whitespace-nowrap shrink-0
                         font-semibold text-sm tracking-wide
                         transition-all duration-300 ease-out
                         transform hover:scale-105 hover:-translate-y-0.5
-                        ${item.label === 'Sobre mí' ? 'px-10 py-3 whitespace-nowrap' : 'px-6 py-3'} rounded-xl
+                        px-2.5 py-2 sm:px-3.5 sm:py-2 xl:px-4.5 xl:py-2.5 rounded-xl
                         cursor-pointer
-                        ${
-                          isActive 
-                            ? 'text-white bg-white/15 border border-white/20' 
-                            : 'text-white/80 hover:text-white hover:bg-white/10'
-                        }
+                        ${isActive ? 'text-fg bg-overlay-1 border app-border' : 'text-fg-muted hover:text-fg hover:bg-overlay-1'}
                         ${hoveredItem === item.label ? 'scale-105' : ''}
                       `}
                       style={{
@@ -286,16 +232,16 @@ export default function DynamicNavbar() {
                       onMouseLeave={() => setHoveredItem(null)}
                     >
                       {/* Texto */}
-                      <span className="uppercase tracking-wider text-base font-medium">
+                      <span className="uppercase tracking-wider text-sm sm:text-base font-medium">
                         {item.label}
                       </span>
                       
-                      {/* Efecto de brillo */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 rounded-xl transform scale-x-0 group-hover:scale-x-100 pointer-events-none"></div>
+                          {/* Efecto de brillo */}
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[color:rgba(255,255,255,0.2)] to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 rounded-xl transform scale-x-0 group-hover:scale-x-100 pointer-events-none"></div>
                       
                       {/* Indicador activo */}
                       {isActive && (
-                        <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-white rounded-full animate-pulse pointer-events-none"></div>
+                        <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-fg rounded-full animate-pulse pointer-events-none"></div>
                       )}
                     </a>
                   );
@@ -303,35 +249,35 @@ export default function DynamicNavbar() {
               </nav>
 
               {/* Panel de Estado y Herramientas */}
-              <div className="flex items-center space-x-4">
+              <div className="hidden md:flex items-center space-x-3 sm:space-x-4">
                 {/* Indicador de Progreso de Scroll */}
                 <div className="hidden xl:flex items-center space-x-2">
-                  <div className="w-20 h-2 bg-white/20 rounded-full overflow-hidden">
+                  <div className="w-20 h-2 bg-overlay-1 rounded-full overflow-hidden">
                     <div 
-                      className="h-full bg-gradient-to-r from-white/60 to-white/90 rounded-full transition-all duration-300 ease-out"
+                      className="h-full bg-fg-soft rounded-full transition-all duration-300 ease-out"
                       style={{ width: `${scrollProgress}%` }}
                     ></div>
                   </div>
-                  <span className="text-white/60 text-sm font-mono font-medium">
+                  <span className="text-fg-muted text-sm font-mono font-medium">
                     {Math.round(scrollProgress)}%
                   </span>
                 </div>
                 
                 {/* Separador */}
-                <div className="w-px h-4 bg-white/20"></div>
+                <div className="hidden xl:block w-px h-4 app-border"></div>
                 
                 {/* Estado del Sistema */}
-                <div className="flex items-center space-x-3 px-4 py-2 bg-white/10 rounded-xl border border-white/20">
+                <div className="flex items-center space-x-3 px-3 sm:px-4 py-2 bg-overlay-1 rounded-xl border app-border">
                   <div className="flex items-center space-x-2">
                     <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-                    <span className="hidden md:block text-white/80 text-sm font-medium tracking-wider uppercase">
+                    <span className="hidden xl:block text-fg-soft text-sm font-medium tracking-wider uppercase">
                       Online
                     </span>
                   </div>
                   
-                  <div className="hidden md:block w-px h-5 bg-white/20"></div>
+                  <div className="hidden xl:block w-px h-5 app-border"></div>
                   
-                  <div className="hidden md:flex items-center space-x-1 text-white/90 font-mono">
+                  <div className="hidden xl:flex items-center space-x-1 text-fg-soft font-mono">
                     <div className="flex items-center space-x-0.5">
                       {/* Horas */}
                       <span className="text-sm font-bold tracking-wider">
@@ -346,9 +292,13 @@ export default function DynamicNavbar() {
                   </div>
                 </div>
                 
-                {/* Botón de Tema (placeholder para futuro) */}
-                <button className="w-12 h-12 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center transition-all duration-300 border border-white/10 hover:border-white/20">
-                  <span className="text-white/70 text-lg">🌙</span>
+                {/* Botón de Tema */}
+                <button
+                  onClick={toggleTheme}
+                  aria-label="Cambiar tema"
+                  className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center transition-all duration-300 border app-border bg-overlay-1 hover:bg-overlay-2"
+                >
+                  <span className="text-fg-muted text-lg">{resolvedTheme === 'dark' ? '🌙' : '☀️'}</span>
                 </button>
               </div>
             </div>
@@ -362,28 +312,32 @@ export default function DynamicNavbar() {
       </div>
 
       {/* Navbar Mobile Mejorado */}
-      <div className="fixed top-4 left-4 z-50 md:hidden animate-fade-in-up">
+      <div className="fixed top-3 left-3 z-50 md:hidden animate-fade-in-up">
         <button
           onClick={toggleMobileMenu}
-          className={`
-            w-20 h-20 glass-effect depth-effect rounded-full
+          type="button"
+          aria-label={isMobileMenuOpen ? 'Cerrar menú de navegación' : 'Abrir menú de navegación'}
+          aria-expanded={isMobileMenuOpen}
+          aria-controls="mobile-menu"
+            className={`
+            w-14 h-14 glass-effect depth-effect rounded-full
             flex items-center justify-center
             transition-all duration-300 ease-out
             hover:scale-105 active:scale-95
-            ${isMobileMenuOpen ? 'bg-white/15' : ''}
+            ${isMobileMenuOpen ? 'bg-overlay-2' : ''}
           `}
         >
-          <div className="flex flex-col items-center justify-center w-8 h-8">
+          <div className="flex flex-col items-center justify-center w-7 h-7">
             <span className={`
-              block w-6 h-0.5 bg-white/90 rounded-full transition-all duration-300
+              block w-5 h-0.5 bg-fg rounded-full transition-all duration-300
               ${isMobileMenuOpen ? 'rotate-45 translate-y-2' : ''}
             `}></span>
             <span className={`
-              block w-6 h-0.5 bg-white/90 rounded-full transition-all duration-300 mt-2
+              block w-5 h-0.5 bg-fg rounded-full transition-all duration-300 mt-1.5
               ${isMobileMenuOpen ? 'opacity-0' : ''}
             `}></span>
             <span className={`
-              block w-6 h-0.5 bg-white/90 rounded-full transition-all duration-300 mt-2
+              block w-5 h-0.5 bg-fg rounded-full transition-all duration-300 mt-1.5
               ${isMobileMenuOpen ? '-rotate-45 -translate-y-2' : ''}
             `}></span>
           </div>
@@ -394,58 +348,55 @@ export default function DynamicNavbar() {
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-40 md:hidden">
           <div 
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-overlay-2 backdrop-blur-sm"
             onClick={() => setIsMobileMenuOpen(false)}
           ></div>
           
-          <div className="absolute top-16 sm:top-20 left-4 right-4 glass-effect-expanded depth-effect-expanded rounded-2xl sm:rounded-3xl p-6 sm:p-10 animate-slide-in safe-area-inset">
+            <div id="mobile-menu" className="absolute top-16 left-1/2 -translate-x-1/2 w-[88vw] max-w-[520px] glass-effect-expanded depth-effect-expanded rounded-2xl p-5 animate-slide-in safe-area-inset">
             <nav className="flex flex-col space-y-3 sm:space-y-6">
               {navItems.map((item, index) => (
                 <a
                   key={item.label}
                   href={item.href}
-                  onClick={(e) => {
-                    handleSmoothScroll(e, item.href);
-                    handleMobileItemClick();
-                  }}
+                  onClick={handleMobileItemClick}
                   className={`
-                    text-white/90 active:text-white
-                    font-semibold text-lg sm:text-xl tracking-wide
+                    text-fg-soft active:text-fg
+                    font-semibold text-base tracking-wide
                     transition-all duration-300 ease-out
                     transform active:scale-95
-                    px-6 sm:px-8 py-4 sm:py-6 rounded-xl sm:rounded-2xl
-                    active:bg-white/10
+                    px-5 py-3 rounded-xl
+                    active:bg-overlay-1
                     text-center
                     uppercase
                     cursor-pointer
-                    min-h-[48px] flex items-center justify-center
+                    min-h-[44px] flex items-center justify-center
                     relative
-                    ${activeSection === item.href.replace('#', '') ? 'bg-white/15 text-white' : ''}
+                    ${activeSection === item.href.replace('#', '') ? 'bg-overlay-1 text-fg' : ''}
                     text-glow
                   `}
                   style={{
-                    animationDelay: `${index * 100}ms`,
+                    animationDelay: `${index * 80}ms`,
                     animationFillMode: 'both',
                     fontFamily: 'var(--font-space-grotesk)',
                   }}
                 >
                   <span className="flex items-center gap-3">
-                    <span className="text-lg sm:text-xl">{item.icon}</span>
+                    <span className="text-base">{item.icon}</span>
                     {item.label}
                   </span>
                   
                   {activeSection === item.href.replace('#', '') && (
-                    <div className="absolute right-4 sm:right-6 top-1/2 transform -translate-y-1/2 w-2 h-2 sm:w-3 sm:h-3 bg-white/90 rounded-full animate-pulse-fast"></div>
+                    <div className="absolute right-4 top-1/2 transform -translate-y-1/2 w-2 h-2 bg-fg-soft rounded-full animate-pulse-fast"></div>
                   )}
                 </a>
               ))}
             </nav>
             
             {/* Información adicional en móvil */}
-            <div className="mt-6 sm:mt-8 pt-6 sm:pt-8 border-t border-white/10">
+            <div className="mt-5 pt-5 border-t app-border">
               <div className="text-center">
-                <div className="text-white/60 text-xs sm:text-sm mb-2">Gustavo Rodríguez</div>
-                <div className="text-white/40 text-xs">Fullstack Developer</div>
+                <div className="text-fg-muted text-xs mb-1">Gustavo Rodríguez</div>
+                <div className="text-fg-muted text-[11px]">Fullstack Developer</div>
               </div>
             </div>
           </div>

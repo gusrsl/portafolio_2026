@@ -1,50 +1,47 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import useDeviceInfo from '@/hooks/useDeviceInfo';
 
 export default function SmoothScrollHandler() {
-  const [isMobile, setIsMobile] = useState(false);
-  // Detectar dispositivos móviles
-  useEffect(() => {
-    const checkMobile = () => {
-      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-      const isSmallScreen = window.innerWidth < 768;
-      setIsMobile(isTouchDevice || isSmallScreen);
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  const { isMobile } = useDeviceInfo();
 
   useEffect(() => {
-    // Mejorar el scroll suave para enlaces internos
+    // Scroll suave robusto para enlaces internos (#id) incluso si se hace click en elementos anidados
     const handleSmoothScroll = (e: Event) => {
-      const target = e.target as HTMLAnchorElement;
-      if (target.tagName === 'A' && target.getAttribute('href')?.startsWith('#')) {
-        e.preventDefault();
-        
-        const targetId = target.getAttribute('href')?.substring(1);
-        const targetElement = document.getElementById(targetId || '');
-        
-        if (targetElement) {
-          // Ajustar offset según el dispositivo
-          const offsetTop = targetElement.offsetTop - (isMobile ? 60 : 80);
-          
-          window.scrollTo({
-            top: offsetTop,
-            behavior: 'smooth'
-          });
-          
-          // Opcional: actualizar la URL sin recargar
-          history.pushState(null, '', `#${targetId}`);
-        }
-      }
+      const targetNode = e.target as Element | null;
+      if (!targetNode) return;
+
+      const anchor = targetNode.closest('a') as HTMLAnchorElement | null;
+      if (!anchor) return;
+
+      const href = anchor.getAttribute('href') || '';
+      if (!href.startsWith('#')) return;
+
+      const targetId = href.substring(1);
+      if (!targetId) return;
+
+      const targetElement = document.getElementById(targetId);
+      if (!targetElement) return;
+
+      e.preventDefault();
+
+      // Calcular altura real del navbar si existe
+      const navbar = document.getElementById('dynamic-navbar');
+      const navbarHeight = navbar ? navbar.getBoundingClientRect().height : (isMobile ? 60 : 100);
+      const offsetTop = targetElement.offsetTop - Math.ceil(navbarHeight);
+
+      window.scrollTo({
+        top: Math.max(0, offsetTop),
+        behavior: 'smooth',
+      });
+
+      // Actualizar hash sin recargar
+      history.pushState(null, '', `#${targetId}`);
     };
 
     document.addEventListener('click', handleSmoothScroll);
-    
+
     return () => {
       document.removeEventListener('click', handleSmoothScroll);
     };

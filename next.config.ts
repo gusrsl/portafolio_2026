@@ -2,11 +2,18 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
-  experimental: {
-    optimizePackageImports: ['@splinetool/react-spline'],
-  },
+  // experimental: {
+  //   optimizePackageImports: ['@splinetool/react-spline'],
+  // },
   images: {
-    domains: ['prod.spline.design'],
+    remotePatterns: [
+      { protocol: 'https', hostname: 'prod.spline.design' },
+      { protocol: 'https', hostname: 'github.com' },
+      { protocol: 'https', hostname: 'avatars.githubusercontent.com' },
+      { protocol: 'https', hostname: 'github-readme-activity-graph.vercel.app' },
+      { protocol: 'https', hostname: 'github-readme-stats.vercel.app' },
+      { protocol: 'https', hostname: 'github-readme-streak-stats.herokuapp.com' },
+    ],
   },
   // Optimizaciones para móviles
   compress: true,

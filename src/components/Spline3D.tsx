@@ -1,17 +1,9 @@
 'use client';
 
-import { Suspense, useState, useEffect } from 'react';
-import dynamic from 'next/dynamic';
+import { Suspense, useEffect, useState } from 'react';
+import type { ComponentType } from 'react';
 
-// Importar Spline de forma dinámica para evitar problemas de SSR
-const Spline = dynamic(() => import('@splinetool/react-spline'), {
-  ssr: false,
-  loading: () => (
-    <div className="flex items-center justify-center h-full">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white/30"></div>
-    </div>
-  ),
-});
+type SplineComponentType = ComponentType<{ scene: string } & Record<string, unknown>>;
 
 
 interface Spline3DProps {
@@ -23,7 +15,7 @@ interface Spline3DProps {
 
 export default function Spline3D({ scene, className = '', fallback, disableOnMobile = true }: Spline3DProps) {
   const [isMobile, setIsMobile] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [SplineComp, setSplineComp] = useState<SplineComponentType | null>(null);
   // Detectar dispositivos móviles
   useEffect(() => {
     const checkMobile = () => {
@@ -60,6 +52,26 @@ export default function Spline3D({ scene, className = '', fallback, disableOnMob
     </div>
   );
 
+  // Cargar el componente de Spline únicamente en el cliente (evita resolución en el servidor)
+  useEffect(() => {
+    let isCancelled = false;
+    (async () => {
+      try {
+        const mod = await import('@splinetool/react-spline');
+        if (!isCancelled) {
+          const SplineModule = mod as unknown as { default: SplineComponentType };
+          setSplineComp(() => SplineModule.default);
+        }
+      } catch (err) {
+        // si falla, mantenemos fallback
+        console.error('Error cargando Spline:', err);
+      }
+    })();
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
   // Si es móvil y está deshabilitado, mostrar fallback estático
   if (isMobile && disableOnMobile) {
     return fallback || mobileFallback;
@@ -68,17 +80,19 @@ export default function Spline3D({ scene, className = '', fallback, disableOnMob
   return (
     <Suspense fallback={fallback || defaultFallback}>
       <div className={`relative ${className}`} style={{ pointerEvents: 'auto' }}>
-        <Spline
-          scene={scene}
-          style={{
-            width: '100%',
-            height: '100%',
-            background: 'transparent',
-            pointerEvents: isMobile ? 'none' : 'auto' // Deshabilitar interacciones en móvil
-          }}
-          onLoad={() => setIsLoaded(true)}
-        />
-        {/* Overlay para mejorar rendimiento en móvil */}
+        {SplineComp ? (
+          <SplineComp
+            scene={scene}
+            style={{
+              width: '100%',
+              height: '100%',
+              background: 'transparent',
+              pointerEvents: isMobile ? 'none' : 'auto',
+            }}
+          />
+        ) : (
+          defaultFallback
+        )}
         {isMobile && (
           <div className="absolute inset-0 pointer-events-none bg-transparent" />
         )}
@@ -88,12 +102,12 @@ export default function Spline3D({ scene, className = '', fallback, disableOnMob
 }
 
 // Componente específico para la escena principal
-export function MainSpline3D({ className = '' }: { className?: string }) {
+export function MainSpline3D({ className = '', disableOnMobile = true }: { className?: string; disableOnMobile?: boolean }) {
   return (
     <Spline3D
       scene="https://prod.spline.design/mtEsFPAfJC4XioLx/scene.splinecode"
       className={className}
-      disableOnMobile={true}
+      disableOnMobile={disableOnMobile}
     />
   );
 }

@@ -174,7 +174,8 @@ export function ParallaxElement({ children, speed = 0.5, className = '' }: Paral
 
     const handleScroll = () => {
       if (ref.current) {
-        const rect = ref.current.getBoundingClientRect();
+        // uso del rect eliminado para evitar variable no usada
+        // const rect = ref.current.getBoundingClientRect();
         const scrolled = window.pageYOffset;
         const rate = scrolled * -speed;
         setOffset(rate);

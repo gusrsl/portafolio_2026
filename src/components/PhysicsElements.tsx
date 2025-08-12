@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 interface FloatingElement {
   id: number;
@@ -34,15 +34,18 @@ export default function PhysicsElements({
   const [isMobile, setIsMobile] = useState(false);
   const lastUpdate = useRef<number>(0);
 
-  // Colores para los elementos
-  const colors = [
-    'rgba(147, 51, 234, 0.6)', // purple
-    'rgba(59, 130, 246, 0.6)', // blue
-    'rgba(236, 72, 153, 0.6)', // pink
-    'rgba(34, 197, 94, 0.6)',  // green
-    'rgba(251, 191, 36, 0.6)', // yellow
-    'rgba(239, 68, 68, 0.6)',  // red
-  ];
+  // Colores para los elementos (memo para evitar cambiar dependencias del effect)
+  const colors = useMemo(
+    () => [
+      'rgba(147, 51, 234, 0.6)', // purple
+      'rgba(59, 130, 246, 0.6)', // blue
+      'rgba(236, 72, 153, 0.6)', // pink
+      'rgba(34, 197, 94, 0.6)', // green
+      'rgba(251, 191, 36, 0.6)', // yellow
+      'rgba(239, 68, 68, 0.6)', // red
+    ],
+    []
+  );
 
   // Detectar dispositivos móviles
   useEffect(() => {
@@ -62,7 +65,7 @@ export default function PhysicsElements({
     window.addEventListener('resize', checkMobile);
     
     return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  }, [isMobile, elements.length]);
 
   // Inicializar elementos
   useEffect(() => {
@@ -88,7 +91,7 @@ export default function PhysicsElements({
     }));
 
     setElements(newElements);
-  }, [count, isMobile]);
+  }, [count, isMobile, colors]);
 
   // Manejar movimiento del mouse
   useEffect(() => {
@@ -125,7 +128,8 @@ export default function PhysicsElements({
 
       setElements(prevElements => 
         prevElements.map(element => {
-          let { x, y, vx, vy, rotation, rotationSpeed } = element;
+          let { x, y, vx, vy, rotation } = element;
+          const { rotationSpeed } = element;
 
           // Física básica - gravedad sutil (reducida en móvil)
           vy += isMobile ? 0.01 : 0.015;

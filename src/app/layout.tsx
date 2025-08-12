@@ -1,7 +1,11 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Inter, Poppins, Space_Grotesk } from "next/font/google";
+import { profile } from '@/data/profile';
 import "./globals.css";
 import AnimatedCursor from '../components/AnimatedCursor';
+import SmoothScrollHandler from '@/components/SmoothScrollHandler';
+import TouchIndicator from '@/components/TouchIndicator';
+import { ThemeProvider } from '@/components/utils/ThemeProvider';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,25 +38,23 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Portafolio 2026 - Gustavo Rodríguez",
-  description: "Portafolio personal con diseño moderno y experiencia 3D interactiva",
+  title: `${profile.brandTitle} - ${profile.shortName}`,
+  description: "Portafolio personal profesional con diseño moderno y experiencia 3D interactiva",
   keywords: ["portafolio", "desarrollo web", "React", "Next.js", "3D"],
-  authors: [{ name: "Gustavo Rodríguez" }],
+  authors: [{ name: profile.shortName }],
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Portafolio 2026",
+    title: profile.brandTitle,
   },
   formatDetection: {
     telephone: false,
   },
 };
 
-export const viewport = {
+export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   themeColor: "#000000",
 };
 
@@ -63,19 +65,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="Portafolio 2026" />
-        <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="theme-color" content="#000000" />
-      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${poppins.variable} ${spaceGrotesk.variable} antialiased`}
+        style={{ position: 'relative' }}
       >
-        <AnimatedCursor />
-        {children}
+        <ThemeProvider>
+          <AnimatedCursor />
+          <SmoothScrollHandler />
+          <TouchIndicator />
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );
